@@ -31,21 +31,29 @@ class ChessState extends Equatable {
   }) {
     return ChessState(
       game: game ?? this.game,
-      selectedSquare: clearSelection ? null : (selectedSquare ?? this.selectedSquare),
-      legalMoveDestinations: clearSelection ? const [] : (legalMoveDestinations ?? this.legalMoveDestinations),
+      selectedSquare: clearSelection
+          ? null
+          : (selectedSquare ?? this.selectedSquare),
+      legalMoveDestinations: clearSelection
+          ? const []
+          : (legalMoveDestinations ?? this.legalMoveDestinations),
       playerColor: playerColor ?? this.playerColor,
-      pendingPromotion: clearPendingPromotion ? null : (pendingPromotion ?? this.pendingPromotion),
-      resignedPlayer: clearResignedPlayer ? null : (resignedPlayer ?? this.resignedPlayer),
+      pendingPromotion: clearPendingPromotion
+          ? null
+          : (pendingPromotion ?? this.pendingPromotion),
+      resignedPlayer: clearResignedPlayer
+          ? null
+          : (resignedPlayer ?? this.resignedPlayer),
     );
   }
 
   @override
   List<Object?> get props => [
-        game.fen,
-        selectedSquare,
-        legalMoveDestinations,
-        playerColor,
-        pendingPromotion,
-        resignedPlayer,
-      ];
+    game.fen,
+    selectedSquare,
+    legalMoveDestinations,
+    playerColor,
+    pendingPromotion,
+    resignedPlayer,
+  ];
 }

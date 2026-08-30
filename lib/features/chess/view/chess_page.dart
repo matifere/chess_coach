@@ -10,10 +10,7 @@ class ChessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => ChessCubit(),
-      child: const ChessView(),
-    );
+    return BlocProvider(create: (_) => ChessCubit(), child: const ChessView());
   }
 }
 
@@ -23,10 +20,7 @@ class ChessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chess Coach'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Chess Coach'), centerTitle: true),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth > 800;
@@ -35,7 +29,9 @@ class ChessView extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isDesktop ? constraints.maxHeight : double.infinity),
+                constraints: BoxConstraints(
+                  maxWidth: isDesktop ? constraints.maxHeight : double.infinity,
+                ),
                 child: const ChessBoard(),
               ),
             ),
@@ -52,7 +48,9 @@ class ChessView extends StatelessWidget {
                   width: 320,
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
-                    border: const Border(left: BorderSide(color: Colors.black12, width: 1)),
+                    border: const Border(
+                      left: BorderSide(color: Colors.black12, width: 1),
+                    ),
                   ),
                   child: menuWidget,
                 ),
@@ -84,12 +82,20 @@ class SideMenu extends StatelessWidget {
         BlocBuilder<ChessCubit, ChessState>(
           builder: (context, state) {
             if (state.resignedPlayer != null) {
-              final winner = state.resignedPlayer == ch.Color.WHITE ? 'Negras' : 'Blancas';
-              final loser = state.resignedPlayer == ch.Color.WHITE ? 'Blancas' : 'Negras';
+              final winner = state.resignedPlayer == ch.Color.WHITE
+                  ? 'Negras'
+                  : 'Blancas';
+              final loser = state.resignedPlayer == ch.Color.WHITE
+                  ? 'Blancas'
+                  : 'Negras';
               return Text(
                 '¡$loser abandonaron!\nGanan las $winner',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               );
             }
 
@@ -99,7 +105,11 @@ class SideMenu extends StatelessWidget {
               return Text(
                 '¡Jaque Mate!\nGanan las ${isWhiteTurn ? 'Negras' : 'Blancas'}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               );
             }
 
@@ -107,14 +117,22 @@ class SideMenu extends StatelessWidget {
               return const Text(
                 '¡Empate!',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
               );
             }
 
             if (state.game.in_check) {
               return const Text(
                 '¡Jaque!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
               );
             }
 
@@ -127,7 +145,10 @@ class SideMenu extends StatelessWidget {
         const Divider(height: 32),
 
         // Player Color Selector
-        const Text('Jugar como:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text(
+          'Jugar como:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         BlocBuilder<ChessCubit, ChessState>(
           builder: (context, state) {
@@ -143,11 +164,14 @@ class SideMenu extends StatelessWidget {
             );
           },
         ),
-        
+
         const Divider(height: 32),
 
         // PGN History
-        const Text('Historial de Jugadas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text(
+          'Historial de Jugadas',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         Expanded(
           child: Container(
@@ -162,7 +186,10 @@ class SideMenu extends StatelessWidget {
             child: BlocBuilder<ChessCubit, ChessState>(
               builder: (context, state) {
                 if (state.game.history.isEmpty) {
-                  return const Text('Aún no hay jugadas.', style: TextStyle(color: Colors.grey));
+                  return const Text(
+                    'Aún no hay jugadas.',
+                    style: TextStyle(color: Colors.grey),
+                  );
                 }
                 return SingleChildScrollView(
                   child: Text(
@@ -180,7 +207,10 @@ class SideMenu extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           child: BlocBuilder<ChessCubit, ChessState>(
             builder: (context, state) {
-              final isGameOver = state.game.in_checkmate || state.game.in_draw || state.resignedPlayer != null;
+              final isGameOver =
+                  state.game.in_checkmate ||
+                  state.game.in_draw ||
+                  state.resignedPlayer != null;
 
               if (isGameOver) {
                 return SizedBox(
@@ -224,7 +254,9 @@ class SideMenu extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('¿Abandonar partida?'),
-          content: const Text('Si abandonas, la partida terminará y tu oponente ganará.'),
+          content: const Text(
+            'Si abandonas, la partida terminará y tu oponente ganará.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -235,7 +267,10 @@ class SideMenu extends StatelessWidget {
                 Navigator.pop(dialogContext);
                 context.read<ChessCubit>().resign();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Abandonar'),
             ),
           ],

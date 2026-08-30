@@ -14,14 +14,20 @@ class ChessCubit extends Cubit<ChessState> {
       if (state.legalMoveDestinations.contains(square)) {
         // Chequear si es un movimiento de promoción (peón llegando a última fila)
         final piece = state.game.get(state.selectedSquare!);
-        if (piece != null && piece.type == ch.PieceType.PAWN && (square[1] == '8' || square[1] == '1')) {
-          emit(state.copyWith(pendingPromotion: {'from': state.selectedSquare!, 'to': square}));
+        if (piece != null &&
+            piece.type == ch.PieceType.PAWN &&
+            (square[1] == '8' || square[1] == '1')) {
+          emit(
+            state.copyWith(
+              pendingPromotion: {'from': state.selectedSquare!, 'to': square},
+            ),
+          );
         } else {
           _makeMove(state.selectedSquare!, square);
         }
         return;
       }
-      
+
       // Si toca el mismo cuadro, deseleccionamos
       if (state.selectedSquare == square) {
         emit(state.copyWith(clearSelection: true));
@@ -48,7 +54,9 @@ class ChessCubit extends Cubit<ChessState> {
 
     if (destinations.contains(to)) {
       final piece = state.game.get(from);
-      if (piece != null && piece.type == ch.PieceType.PAWN && (to[1] == '8' || to[1] == '1')) {
+      if (piece != null &&
+          piece.type == ch.PieceType.PAWN &&
+          (to[1] == '8' || to[1] == '1')) {
         emit(state.copyWith(pendingPromotion: {'from': from, 'to': to}));
       } else {
         _makeMove(from, to);
@@ -63,38 +71,47 @@ class ChessCubit extends Cubit<ChessState> {
     final moves = state.game.generate_moves({'square': square});
     final destinations = moves.map((m) => m.toAlgebraic).toList();
 
-    emit(state.copyWith(
-      selectedSquare: square,
-      legalMoveDestinations: destinations,
-    ));
+    emit(
+      state.copyWith(
+        selectedSquare: square,
+        legalMoveDestinations: destinations,
+      ),
+    );
   }
 
   void _makeMove(String from, String to, {String? promotion}) {
     // Copiamos el juego para que Bloc detecte el cambio con Equatable
     final newGame = ch.Chess.fromFEN(state.game.fen);
-    
+
     // Armamos el movimiento
     Map<String, dynamic> moveObj = {'from': from, 'to': to};
     if (promotion != null) {
       moveObj['promotion'] = promotion;
-    } else if (newGame.get(from)?.type == ch.PieceType.PAWN && (to[1] == '8' || to[1] == '1')) {
+    } else if (newGame.get(from)?.type == ch.PieceType.PAWN &&
+        (to[1] == '8' || to[1] == '1')) {
       moveObj['promotion'] = 'q'; // fallback por si acaso
     }
 
     final moveSuccess = newGame.move(moveObj);
-    
+
     if (moveSuccess) {
-      emit(state.copyWith(
-        game: newGame,
-        clearSelection: true,
-        clearPendingPromotion: true,
-      ));
+      emit(
+        state.copyWith(
+          game: newGame,
+          clearSelection: true,
+          clearPendingPromotion: true,
+        ),
+      );
     }
   }
 
   void executePromotion(String promotionPiece) {
     if (state.pendingPromotion != null) {
-      _makeMove(state.pendingPromotion!['from']!, state.pendingPromotion!['to']!, promotion: promotionPiece);
+      _makeMove(
+        state.pendingPromotion!['from']!,
+        state.pendingPromotion!['to']!,
+        promotion: promotionPiece,
+      );
     }
   }
 
@@ -112,13 +129,12 @@ class ChessCubit extends Cubit<ChessState> {
   }
 
   void resetGame() {
-    emit(ChessState(
-      game: ch.Chess(),
-      playerColor: state.playerColor,
-    ));
+    emit(ChessState(game: ch.Chess(), playerColor: state.playerColor));
   }
 
   bool _isGameOver() {
-    return state.game.in_checkmate || state.game.in_draw || state.resignedPlayer != null;
+    return state.game.in_checkmate ||
+        state.game.in_draw ||
+        state.resignedPlayer != null;
   }
 }
