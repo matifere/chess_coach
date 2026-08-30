@@ -83,6 +83,16 @@ class SideMenu extends StatelessWidget {
         // Turn Status
         BlocBuilder<ChessCubit, ChessState>(
           builder: (context, state) {
+            if (state.resignedPlayer != null) {
+              final winner = state.resignedPlayer == ch.Color.WHITE ? 'Negras' : 'Blancas';
+              final loser = state.resignedPlayer == ch.Color.WHITE ? 'Blancas' : 'Negras';
+              return Text(
+                '¡$loser abandonaron!\nGanan las $winner',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+              );
+            }
+
             final isWhiteTurn = state.game.turn == ch.Color.WHITE;
 
             if (state.game.in_checkmate) {
@@ -90,6 +100,14 @@ class SideMenu extends StatelessWidget {
                 '¡Jaque Mate!\nGanan las ${isWhiteTurn ? 'Negras' : 'Blancas'}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+              );
+            }
+
+            if (state.game.in_draw) {
+              return const Text(
+                '¡Empate!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
               );
             }
 
@@ -106,7 +124,7 @@ class SideMenu extends StatelessWidget {
             );
           },
         ),
-        const Divider(height: 48),
+        const Divider(height: 32),
 
         // Player Color Selector
         const Text('Jugar como:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -126,7 +144,7 @@ class SideMenu extends StatelessWidget {
           },
         ),
         
-        const Divider(height: 48),
+        const Divider(height: 32),
 
         // PGN History
         const Text('Historial de Jugadas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -156,8 +174,73 @@ class SideMenu extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+
+        // Acciones (Abandonar / Nueva Partida)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: BlocBuilder<ChessCubit, ChessState>(
+            builder: (context, state) {
+              final isGameOver = state.game.in_checkmate || state.game.in_draw || state.resignedPlayer != null;
+
+              if (isGameOver) {
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.read<ChessCubit>().resetGame(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Nueva Partida'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                );
+              }
+
+              return SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showResignDialog(context),
+                  icon: const Icon(Icons.flag),
+                  label: const Text('Abandonar Partida'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ],
+    );
+  }
+
+  void _showResignDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('¿Abandonar partida?'),
+          content: const Text('Si abandonas, la partida terminará y tu oponente ganará.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.read<ChessCubit>().resign();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              child: const Text('Abandonar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

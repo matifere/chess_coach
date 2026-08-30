@@ -6,10 +6,19 @@ class ChessCubit extends Cubit<ChessState> {
   ChessCubit() : super(ChessState(game: ch.Chess()));
 
   void onSquareTapped(String square) {
+    // Si estamos esperando promoción o la partida terminó, ignoramos toques
+    if (state.pendingPromotion != null || _isGameOver()) return;
+
     // Si ya hay un cuadro seleccionado, intentamos mover
     if (state.selectedSquare != null) {
       if (state.legalMoveDestinations.contains(square)) {
-        _makeMove(state.selectedSquare!, square);
+        // Chequear si es un movimiento de promoción (peón llegando a última fila)
+        final piece = state.game.get(state.selectedSquare!);
+        if (piece != null && piece.type == ch.PieceType.PAWN && (square[1] == '8' || square[1] == '1')) {
+          emit(state.copyWith(pendingPromotion: {'from': state.selectedSquare!, 'to': square}));
+        } else {
+          _makeMove(state.selectedSquare!, square);
+        }
         return;
       }
       
@@ -41,22 +50,56 @@ class ChessCubit extends Cubit<ChessState> {
     ));
   }
 
-  void _makeMove(String from, String to) {
+  void _makeMove(String from, String to, {String? promotion}) {
     // Copiamos el juego para que Bloc detecte el cambio con Equatable
     final newGame = ch.Chess.fromFEN(state.game.fen);
     
-    // Ejecutamos el movimiento (asumimos que es promoción a reina si aplica para simplificar por ahora)
-    final moveSuccess = newGame.move({'from': from, 'to': to, 'promotion': 'q'});
+    // Armamos el movimiento
+    Map<String, dynamic> moveObj = {'from': from, 'to': to};
+    if (promotion != null) {
+      moveObj['promotion'] = promotion;
+    } else if (newGame.get(from)?.type == ch.PieceType.PAWN && (to[1] == '8' || to[1] == '1')) {
+      moveObj['promotion'] = 'q'; // fallback por si acaso
+    }
+
+    final moveSuccess = newGame.move(moveObj);
     
     if (moveSuccess) {
       emit(state.copyWith(
         game: newGame,
         clearSelection: true,
+        clearPendingPromotion: true,
       ));
     }
   }
 
+  void executePromotion(String promotionPiece) {
+    if (state.pendingPromotion != null) {
+      _makeMove(state.pendingPromotion!['from']!, state.pendingPromotion!['to']!, promotion: promotionPiece);
+    }
+  }
+
+  void cancelPromotion() {
+    emit(state.copyWith(clearPendingPromotion: true, clearSelection: true));
+  }
+
   void setPlayerColor(ch.Color color) {
     emit(state.copyWith(playerColor: color));
+  }
+
+  void resign() {
+    if (_isGameOver()) return;
+    emit(state.copyWith(resignedPlayer: state.playerColor));
+  }
+
+  void resetGame() {
+    emit(ChessState(
+      game: ch.Chess(),
+      playerColor: state.playerColor,
+    ));
+  }
+
+  bool _isGameOver() {
+    return state.game.in_checkmate || state.game.in_draw || state.resignedPlayer != null;
   }
 }

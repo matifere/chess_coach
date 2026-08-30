@@ -10,84 +10,142 @@ class ChessBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ChessCubit, ChessState>(
-      builder: (context, state) {
-        return AspectRatio(
-          aspectRatio: 1.0,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.brown[800]!, width: 2),
-            ),
-            child: Column(
-              children: List.generate(8, (rowIdx) {
-                final isWhiteView = state.playerColor == ch.Color.WHITE;
-                final rank = isWhiteView ? 8 - rowIdx : 1 + rowIdx;
-                
-                return Expanded(
-                  child: Row(
-                    children: List.generate(8, (colIdx) {
-                      final fileIndex = isWhiteView ? colIdx : 7 - colIdx;
-                      final file = String.fromCharCode('a'.codeUnitAt(0) + fileIndex);
-                      final squareId = '$file$rank';
+    return BlocListener<ChessCubit, ChessState>(
+      listenWhen: (previous, current) => 
+          previous.pendingPromotion == null && current.pendingPromotion != null,
+      listener: (context, state) {
+        if (state.pendingPromotion != null) {
+          _showPromotionDialog(context, state.game.turn);
+        }
+      },
+      child: BlocBuilder<ChessCubit, ChessState>(
+        builder: (context, state) {
+          return AspectRatio(
+            aspectRatio: 1.0,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.brown[800]!, width: 2),
+              ),
+              child: Column(
+                children: List.generate(8, (rowIdx) {
+                  final isWhiteView = state.playerColor == ch.Color.WHITE;
+                  final rank = isWhiteView ? 8 - rowIdx : 1 + rowIdx;
+                  
+                  return Expanded(
+                    child: Row(
+                      children: List.generate(8, (colIdx) {
+                        final fileIndex = isWhiteView ? colIdx : 7 - colIdx;
+                        final file = String.fromCharCode('a'.codeUnitAt(0) + fileIndex);
+                        final squareId = '$file$rank';
 
-                      // a1 (rank=1, file=0) is dark. 1+0 = 1 (odd).
-                      // h1 (rank=1, file=7) is light. 1+7 = 8 (even).
-                      final isLightSquare = (rank + fileIndex) % 2 == 0;
-                      final color = isLightSquare ? Colors.amber[200] : Colors.brown[600];
+                        // a1 (rank=1, file=0) is dark. 1+0 = 1 (odd).
+                        // h1 (rank=1, file=7) is light. 1+7 = 8 (even).
+                        final isLightSquare = (rank + fileIndex) % 2 == 0;
+                        final color = isLightSquare ? Colors.amber[200] : Colors.brown[600];
 
-                      final isSelected = state.selectedSquare == squareId;
-                      final isLegalMove = state.legalMoveDestinations.contains(squareId);
+                        final isSelected = state.selectedSquare == squareId;
+                        final isLegalMove = state.legalMoveDestinations.contains(squareId);
 
-                      // Obtenemos la pieza
-                      final piece = state.game.get(squareId);
-                      
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => context.read<ChessCubit>().onSquareTapped(squareId),
-                          child: Container(
-                            color: isSelected 
-                                ? Colors.blue.withValues(alpha:0.8)
-                                : isLegalMove 
-                                    ? Colors.green.withValues(alpha:0.5)
-                                    : color,
-                            child: Stack(
-                              children: [
-                                // Pequeña marca para cuadros de destino legal
-                                if (isLegalMove)
-                                  Center(
-                                    child: FractionallySizedBox(
-                                      widthFactor: 0.3,
-                                      heightFactor: 0.3,
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black26,
-                                          shape: BoxShape.circle,
+                        // Obtenemos la pieza
+                        final piece = state.game.get(squareId);
+                        
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => context.read<ChessCubit>().onSquareTapped(squareId),
+                            child: Container(
+                              color: isSelected 
+                                  ? Colors.blue.withValues(alpha:0.8)
+                                  : isLegalMove 
+                                      ? Colors.green.withValues(alpha:0.5)
+                                      : color,
+                              child: Stack(
+                                children: [
+                                  // Pequeña marca para cuadros de destino legal
+                                  if (isLegalMove)
+                                    Center(
+                                      child: FractionallySizedBox(
+                                        widthFactor: 0.3,
+                                        heightFactor: 0.3,
+                                        child: Container(
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black26,
+                                            shape: BoxShape.circle,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                
-                                // Renderizamos la pieza si existe
-                                if (piece != null)
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: _getPieceWidget(piece),
+                                  
+                                  // Renderizamos la pieza si existe
+                                  if (piece != null)
+                                    Positioned.fill(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: _getPieceWidget(piece),
+                                      ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
-                  ),
-                );
-              }),
+                        );
+                      }),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPromotionDialog(BuildContext context, ch.Color turn) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final cubit = context.read<ChessCubit>();
+        final colorPrefix = turn == ch.Color.WHITE ? 'w' : 'b';
+        
+        Widget pieceOption(String type) => GestureDetector(
+          onTap: () {
+             Navigator.pop(dialogContext);
+             cubit.executePromotion(type.toLowerCase());
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              width: 64, height: 64,
+              child: SvgPicture.asset('assets/pieces/$colorPrefix${type.toUpperCase()}.svg'),
             ),
           ),
         );
-      },
+
+        return AlertDialog(
+          title: const Text('Promoción de Peón', textAlign: TextAlign.center),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              pieceOption('q'),
+              pieceOption('r'),
+              pieceOption('b'),
+              pieceOption('n'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                cubit.cancelPromotion();
+              },
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      }
     );
   }
 

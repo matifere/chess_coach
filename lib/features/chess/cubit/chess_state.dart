@@ -6,12 +6,16 @@ class ChessState extends Equatable {
   final String? selectedSquare;
   final List<String> legalMoveDestinations;
   final ch.Color playerColor;
+  final Map<String, String>? pendingPromotion;
+  final ch.Color? resignedPlayer;
 
   const ChessState({
     required this.game,
     this.selectedSquare,
     this.legalMoveDestinations = const [],
     this.playerColor = ch.Color.WHITE,
+    this.pendingPromotion,
+    this.resignedPlayer,
   });
 
   ChessState copyWith({
@@ -19,21 +23,29 @@ class ChessState extends Equatable {
     String? selectedSquare,
     List<String>? legalMoveDestinations,
     ch.Color? playerColor,
+    Map<String, String>? pendingPromotion,
+    ch.Color? resignedPlayer,
     bool clearSelection = false,
+    bool clearPendingPromotion = false,
+    bool clearResignedPlayer = false,
   }) {
     return ChessState(
       game: game ?? this.game,
       selectedSquare: clearSelection ? null : (selectedSquare ?? this.selectedSquare),
       legalMoveDestinations: clearSelection ? const [] : (legalMoveDestinations ?? this.legalMoveDestinations),
       playerColor: playerColor ?? this.playerColor,
+      pendingPromotion: clearPendingPromotion ? null : (pendingPromotion ?? this.pendingPromotion),
+      resignedPlayer: clearResignedPlayer ? null : (resignedPlayer ?? this.resignedPlayer),
     );
   }
 
   @override
   List<Object?> get props => [
-        game.fen, // Usamos el FEN para comparar si el tablero cambió
+        game.fen,
         selectedSquare,
         legalMoveDestinations,
         playerColor,
+        pendingPromotion,
+        resignedPlayer,
       ];
 }
