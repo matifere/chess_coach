@@ -6,5 +6,11 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-String greet({required String name}) =>
-    RustLib.instance.api.crateApiSimpleGreet(name: name);
+bool initNnue({required List<int> bytes}) =>
+    RustLib.instance.api.crateApiSimpleInitNnue(bytes: bytes);
+
+int analyzePosition({required String fen}) =>
+    RustLib.instance.api.crateApiSimpleAnalyzePosition(fen: fen);
+
+String getBestMove({required String fen, required int depth}) =>
+    RustLib.instance.api.crateApiSimpleGetBestMove(fen: fen, depth: depth);

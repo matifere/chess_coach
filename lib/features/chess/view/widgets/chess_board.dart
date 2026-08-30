@@ -47,6 +47,21 @@ class ChessBoard extends StatelessWidget {
                               .contains(squareId);
                           final piece = state.game.get(squareId);
 
+                          // Historial y Coach Feedback
+                          final isLastMoveFrom = state.lastMoveFeedback?['from'] == squareId;
+                          final isLastMoveTo = state.lastMoveFeedback?['to'] == squareId;
+                          final isLastMove = isLastMoveFrom || isLastMoveTo;
+                          final moveQuality = isLastMoveTo ? (state.lastMoveFeedback?['quality'] as MoveQuality?) : null;
+
+                          Color finalColor = color!;
+                          if (isSelected) {
+                            finalColor = Colors.blue.withValues(alpha:0.8);
+                          } else if (isLegalMove) {
+                            finalColor = Colors.green.withValues(alpha:0.5);
+                          } else if (isLastMove) {
+                            finalColor = Color.lerp(color, Colors.yellow[600], 0.4)!;
+                          }
+
                           return Expanded(
                             child: LayoutBuilder(
                               builder: (context, constraints) {
@@ -66,14 +81,9 @@ class ChessBoard extends StatelessWidget {
                                           .read<ChessCubit>()
                                           .onSquareTapped(squareId),
                                       child: Container(
-                                        color: isSelected
-                                            ? Colors.blue.withValues(alpha: 0.8)
-                                            : isLegalMove
-                                            ? Colors.green.withValues(
-                                                alpha: 0.5,
-                                              )
-                                            : color,
+                                        color: finalColor,
                                         child: Stack(
+                                          clipBehavior: Clip.none,
                                           children: [
                                             if (isLegalMove)
                                               Center(
@@ -146,6 +156,13 @@ class ChessBoard extends StatelessWidget {
                                                         )
                                                       : _getPieceWidget(piece),
                                                 ),
+                                              ),
+                                              
+                                            if (moveQuality != null)
+                                              Positioned(
+                                                top: -4,
+                                                right: -4,
+                                                child: MoveQualityBadge(quality: moveQuality),
                                               ),
                                           ],
                                         ),
@@ -268,6 +285,56 @@ class ChessBoard extends StatelessWidget {
     return SvgPicture.asset(
       'assets/pieces/$colorPrefix$typeStr.svg',
       fit: BoxFit.contain,
+    );
+  }
+}
+
+class MoveQualityBadge extends StatelessWidget {
+  final MoveQuality quality;
+  const MoveQualityBadge({super.key, required this.quality});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bgColor;
+    String text;
+    IconData? icon;
+
+    switch (quality) {
+      case MoveQuality.brilliant: bgColor = Colors.cyan; text = '!!'; break;
+      case MoveQuality.great: bgColor = Colors.indigoAccent; text = '!'; break;
+      case MoveQuality.best: bgColor = Colors.green; icon = Icons.star; text = ''; break;
+      case MoveQuality.excellent: bgColor = Colors.green; text = '✓'; break;
+      case MoveQuality.good: bgColor = Colors.green[300]!; text = '👍'; break;
+      case MoveQuality.inaccuracy: bgColor = Colors.amber; text = '?!'; break;
+      case MoveQuality.mistake: bgColor = Colors.orange; text = '?'; break;
+      case MoveQuality.blunder: bgColor = Colors.red; text = '??'; break;
+      case MoveQuality.book: bgColor = Colors.brown; icon = Icons.menu_book; text = ''; break;
+    }
+
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+        ]
+      ),
+      alignment: Alignment.center,
+      child: icon != null 
+          ? Icon(icon, size: 12, color: Colors.white)
+          : Text(
+              text, 
+              style: const TextStyle(
+                color: Colors.white, 
+                fontSize: 10, 
+                fontWeight: FontWeight.bold,
+                height: 1.0,
+              ),
+              textAlign: TextAlign.center,
+            ),
     );
   }
 }

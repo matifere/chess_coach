@@ -1,18 +1,18 @@
+import 'dart:math';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chess/chess.dart' as ch;
 import 'chess_state.dart';
+import 'package:chess_coach/src/rust/api/simple.dart' as rust_api;
 
 class ChessCubit extends Cubit<ChessState> {
   ChessCubit() : super(ChessState(game: ch.Chess()));
 
   void onSquareTapped(String square) {
-    // Si estamos esperando promoción o la partida terminó, ignoramos toques
     if (state.pendingPromotion != null || _isGameOver()) return;
+    if (state.game.turn != state.playerColor) return; // Turno del bot
 
-    // Si ya hay un cuadro seleccionado, intentamos mover
     if (state.selectedSquare != null) {
       if (state.legalMoveDestinations.contains(square)) {
-        // Chequear si es un movimiento de promoción (peón llegando a última fila)
         final piece = state.game.get(state.selectedSquare!);
         if (piece != null &&
             piece.type == ch.PieceType.PAWN &&
@@ -28,26 +28,24 @@ class ChessCubit extends Cubit<ChessState> {
         return;
       }
 
-      // Si toca el mismo cuadro, deseleccionamos
       if (state.selectedSquare == square) {
         emit(state.copyWith(clearSelection: true));
         return;
       }
     }
 
-    // Seleccionamos un nuevo cuadro (si hay una pieza nuestra ahí)
     final piece = state.game.get(square);
     if (piece != null && piece.color == state.game.turn) {
       _selectSquare(square);
     } else {
-      // Si tocamos un lugar inválido, limpiamos
       emit(state.copyWith(clearSelection: true));
     }
   }
 
   void onDraggedMove(String from, String to) {
     if (state.pendingPromotion != null || _isGameOver()) return;
-    if (from == to) return; // Ignorar si se suelta en la misma casilla
+    if (from == to) return; 
+    if (state.game.turn != state.playerColor) return; // Turno del bot
 
     final moves = state.game.generate_moves({'square': from});
     final destinations = moves.map((m) => m.toAlgebraic).toList();
@@ -67,7 +65,6 @@ class ChessCubit extends Cubit<ChessState> {
   }
 
   void _selectSquare(String square) {
-    // Generamos los movimientos legales para ese cuadro
     final moves = state.game.generate_moves({'square': square});
     final destinations = moves.map((m) => m.toAlgebraic).toList();
 
@@ -79,29 +76,68 @@ class ChessCubit extends Cubit<ChessState> {
     );
   }
 
-  void _makeMove(String from, String to, {String? promotion}) {
-    // Copiamos el juego para que Bloc detecte el cambio con Equatable
+  void _makeMove(String from, String to, {String? promotion, bool isBotMove = false}) {
     final newGame = ch.Chess.fromFEN(state.game.fen);
 
-    // Armamos el movimiento
     Map<String, dynamic> moveObj = {'from': from, 'to': to};
     if (promotion != null) {
       moveObj['promotion'] = promotion;
     } else if (newGame.get(from)?.type == ch.PieceType.PAWN &&
         (to[1] == '8' || to[1] == '1')) {
-      moveObj['promotion'] = 'q'; // fallback por si acaso
+      moveObj['promotion'] = 'q'; 
     }
 
     final moveSuccess = newGame.move(moveObj);
 
     if (moveSuccess) {
+      // Simulación de evaluación del Coach (reemplazaremos con analyze_position pronto)
+      final qualities = MoveQuality.values;
+      final randomQuality = qualities[Random().nextInt(qualities.length)];
+
       emit(
         state.copyWith(
           game: newGame,
           clearSelection: true,
           clearPendingPromotion: true,
+          lastMoveFeedback: {
+            'from': from,
+            'to': to,
+            'quality': randomQuality,
+          },
         ),
       );
+
+      if (!isBotMove && newGame.turn != state.playerColor && !_isGameOver()) {
+        _triggerBotMove();
+      }
+    }
+  }
+
+  Future<void> _triggerBotMove() async {
+    if (state.game.turn == state.playerColor || _isGameOver()) return;
+
+    // Pequeña pausa visual para que no sea automático
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    if (state.game.turn == state.playerColor || _isGameOver()) return;
+
+    final fen = state.game.fen;
+    
+    // Depth 3 para rapidez, luego lo movemos a un isolate
+    final uciMove = rust_api.getBestMove(fen: fen, depth: 3);
+
+    if (uciMove.isNotEmpty && uciMove.length >= 4) {
+      final from = uciMove.substring(0, 2);
+      final to = uciMove.substring(2, 4);
+      String? promotion;
+      if (uciMove.length == 5) {
+        promotion = uciMove.substring(4, 5);
+      }
+
+      // Asegurar que no se reinició en medio
+      if (state.game.fen == fen) {
+        _makeMove(from, to, promotion: promotion, isBotMove: true);
+      }
     }
   }
 
@@ -121,6 +157,9 @@ class ChessCubit extends Cubit<ChessState> {
 
   void setPlayerColor(ch.Color color) {
     emit(state.copyWith(playerColor: color));
+    if (state.game.turn != color && !_isGameOver()) {
+      _triggerBotMove();
+    }
   }
 
   void resign() {
@@ -130,6 +169,9 @@ class ChessCubit extends Cubit<ChessState> {
 
   void resetGame() {
     emit(ChessState(game: ch.Chess(), playerColor: state.playerColor));
+    if (state.playerColor == ch.Color.BLACK) {
+      _triggerBotMove();
+    }
   }
 
   bool _isGameOver() {

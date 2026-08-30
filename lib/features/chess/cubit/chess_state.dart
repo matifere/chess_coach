@@ -1,6 +1,18 @@
 import 'package:equatable/equatable.dart';
 import 'package:chess/chess.dart' as ch;
 
+enum MoveQuality {
+  brilliant,
+  great,
+  best,
+  excellent,
+  good,
+  inaccuracy,
+  mistake,
+  blunder,
+  book
+}
+
 class ChessState extends Equatable {
   final ch.Chess game;
   final String? selectedSquare;
@@ -8,6 +20,7 @@ class ChessState extends Equatable {
   final ch.Color playerColor;
   final Map<String, String>? pendingPromotion;
   final ch.Color? resignedPlayer;
+  final Map<String, dynamic>? lastMoveFeedback;
 
   const ChessState({
     required this.game,
@@ -16,6 +29,7 @@ class ChessState extends Equatable {
     this.playerColor = ch.Color.WHITE,
     this.pendingPromotion,
     this.resignedPlayer,
+    this.lastMoveFeedback,
   });
 
   ChessState copyWith({
@@ -25,6 +39,7 @@ class ChessState extends Equatable {
     ch.Color? playerColor,
     Map<String, String>? pendingPromotion,
     ch.Color? resignedPlayer,
+    Map<String, dynamic>? lastMoveFeedback,
     bool clearSelection = false,
     bool clearPendingPromotion = false,
     bool clearResignedPlayer = false,
@@ -44,6 +59,7 @@ class ChessState extends Equatable {
       resignedPlayer: clearResignedPlayer
           ? null
           : (resignedPlayer ?? this.resignedPlayer),
+      lastMoveFeedback: lastMoveFeedback ?? this.lastMoveFeedback,
     );
   }
 
@@ -55,5 +71,6 @@ class ChessState extends Equatable {
     playerColor,
     pendingPromotion,
     resignedPlayer,
+    lastMoveFeedback,
   ];
 }

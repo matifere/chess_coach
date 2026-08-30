@@ -1,10 +1,38 @@
-#[flutter_rust_bridge::frb(sync)] // Synchronous mode for simplicity of the demo
-pub fn greet(name: String) -> String {
-    format!("Hello, {name}!")
+use crate::engine;
+use shakmaty::{Chess, fen::Fen, CastlingMode, Position};
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn init_nnue(bytes: Vec<u8>) -> bool {
+    engine::load_nnue_bytes(&bytes)
 }
 
-#[flutter_rust_bridge::frb(init)]
-pub fn init_app() {
-    // Default utilities - feel free to customize
-    flutter_rust_bridge::setup_default_user_utils();
+#[flutter_rust_bridge::frb(sync)] 
+pub fn analyze_position(fen: String) -> i32 {
+    let setup = match Fen::from_ascii(fen.as_bytes()) {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+    let pos: Chess = match setup.into_position(CastlingMode::Standard) {
+        Ok(p) => p,
+        Err(_) => return 0,
+    };
+    engine::evaluate(&pos)
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn get_best_move(fen: String, depth: u8) -> String {
+    let setup = match Fen::from_ascii(fen.as_bytes()) {
+        Ok(s) => s,
+        Err(_) => return String::new(),
+    };
+    let pos: Chess = match setup.into_position(CastlingMode::Standard) {
+        Ok(p) => p,
+        Err(_) => return String::new(),
+    };
+    let (best_move, _) = engine::search(&pos, depth, -10000, 10000);
+    
+    match best_move {
+        Some(m) => m.to_uci(CastlingMode::Standard).to_string(),
+        None => String::new(),
+    }
 }
