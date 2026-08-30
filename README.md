@@ -8,9 +8,11 @@ Un proyecto desarrollado en **Flutter** para aprender, entrenar y jugar ajedrez 
 
 - 📱 **Interfaz 100% Responsiva:** Adaptación automática del diseño. En pantallas amplias muestra un panel lateral de control, y en pantallas estrechas apila los elementos cómodamente.
 - 🎨 **Gráficos de Alta Calidad:** Utiliza gráficos vectoriales (SVG) de Lichess (estilo *cburnett*) para mantener una nitidez perfecta en cualquier resolución.
+- 🖐️ **Drag & Drop Integrado:** Juega con clics tradicionales o arrastrando las piezas de forma fluida.
+- 🌟 **Promoción In-Place:** Menú de coronación contextual e inteligente que se despliega exactamente sobre la casilla del peón.
 - 🧠 **Reglas Oficiales:** Motor interno (mediante el paquete `chess`) para validar movimientos legales, jaques, jaque mates, enroques y capturas al paso.
 - 🔄 **Cambio de Perspectiva:** Posibilidad de jugar tanto con **Blancas** como con **Negras**. El tablero se voltea automáticamente para mantener tu bando en la parte inferior.
-- 📜 **Historial PGN:** Registro en tiempo real de todas las jugadas utilizando la Notación Algebraica Estándar.
+- 🏳️ **Gestión de Partida:** Historial PGN en tiempo real, opciones para abandonar la partida y botón de revancha rápida (Nueva partida).
 
 ---
 
@@ -29,7 +31,7 @@ Asegúrate de tener instalado el SDK de Flutter en tu sistema.
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/TU_USUARIO/chess_coach.git
+   git clone https://github.com/matifere/chess_coach.git
    ```
 2. Entra al directorio del proyecto:
    ```bash
@@ -47,7 +49,6 @@ Asegúrate de tener instalado el SDK de Flutter en tu sistema.
 ---
 
 ## 📅 Próximos pasos (Roadmap)
-- [ ] Implementación de menú emergente para la coronación/promoción de peones.
-- [ ] Integración con un motor de ajedrez (bot) para jugar contra la máquina.
-- [ ] (Opcional) Migración de módulos de cálculo pesado a Rust mediante `flutter_rust_bridge`.
+- [ ] Integración con un motor de ajedrez (Stockfish / Bot) para jugar contra la máquina.
 - [ ] Evaluador de ventajas / Barra de evaluación.
+- [ ] (Opcional) Migración de módulos de cálculo pesado a Rust mediante `flutter_rust_bridge`.
