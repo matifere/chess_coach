@@ -39,6 +39,25 @@ class ChessCubit extends Cubit<ChessState> {
     }
   }
 
+  void onDraggedMove(String from, String to) {
+    if (state.pendingPromotion != null || _isGameOver()) return;
+    if (from == to) return; // Ignorar si se suelta en la misma casilla
+
+    final moves = state.game.generate_moves({'square': from});
+    final destinations = moves.map((m) => m.toAlgebraic).toList();
+
+    if (destinations.contains(to)) {
+      final piece = state.game.get(from);
+      if (piece != null && piece.type == ch.PieceType.PAWN && (to[1] == '8' || to[1] == '1')) {
+        emit(state.copyWith(pendingPromotion: {'from': from, 'to': to}));
+      } else {
+        _makeMove(from, to);
+      }
+    } else {
+      emit(state.copyWith(clearSelection: true));
+    }
+  }
+
   void _selectSquare(String square) {
     // Generamos los movimientos legales para ese cuadro
     final moves = state.game.generate_moves({'square': square});

@@ -50,42 +50,77 @@ class ChessBoard extends StatelessWidget {
                         final piece = state.game.get(squareId);
                         
                         return Expanded(
-                          child: GestureDetector(
-                            onTap: () => context.read<ChessCubit>().onSquareTapped(squareId),
-                            child: Container(
-                              color: isSelected 
-                                  ? Colors.blue.withValues(alpha:0.8)
-                                  : isLegalMove 
-                                      ? Colors.green.withValues(alpha:0.5)
-                                      : color,
-                              child: Stack(
-                                children: [
-                                  // Pequeña marca para cuadros de destino legal
-                                  if (isLegalMove)
-                                    Center(
-                                      child: FractionallySizedBox(
-                                        widthFactor: 0.3,
-                                        heightFactor: 0.3,
-                                        child: Container(
-                                          decoration: const BoxDecoration(
-                                            color: Colors.black26,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final squareSize = constraints.maxWidth;
+                              
+                              return DragTarget<String>(
+                                onWillAcceptWithDetails: (details) => true,
+                                onAcceptWithDetails: (details) {
+                                  context.read<ChessCubit>().onDraggedMove(details.data, squareId);
+                                },
+                                builder: (context, candidateData, rejectedData) {
+                                  return GestureDetector(
+                                    onTap: () => context.read<ChessCubit>().onSquareTapped(squareId),
+                                    child: Container(
+                                      color: isSelected 
+                                          ? Colors.blue.withValues(alpha:0.8)
+                                          : isLegalMove 
+                                              ? Colors.green.withValues(alpha:0.5)
+                                              : color,
+                                      child: Stack(
+                                        children: [
+                                          if (isLegalMove)
+                                            Center(
+                                              child: FractionallySizedBox(
+                                                widthFactor: 0.3,
+                                                heightFactor: 0.3,
+                                                child: Container(
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.black26,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          
+                                          if (piece != null)
+                                            Positioned.fill(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(4.0),
+                                                child: piece.color == state.game.turn
+                                                    ? Draggable<String>(
+                                                        data: squareId,
+                                                        onDragStarted: () {
+                                                          context.read<ChessCubit>().onSquareTapped(squareId);
+                                                        },
+                                                        feedback: Material(
+                                                          color: Colors.transparent,
+                                                          child: SizedBox(
+                                                            width: squareSize,
+                                                            height: squareSize,
+                                                            child: Padding(
+                                                              padding: const EdgeInsets.all(4.0),
+                                                              child: _getPieceWidget(piece),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        childWhenDragging: Opacity(
+                                                          opacity: 0.2,
+                                                          child: _getPieceWidget(piece),
+                                                        ),
+                                                        child: _getPieceWidget(piece),
+                                                      )
+                                                    : _getPieceWidget(piece),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  
-                                  // Renderizamos la pieza si existe
-                                  if (piece != null)
-                                    Positioned.fill(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(4.0),
-                                        child: _getPieceWidget(piece),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                                  );
+                                },
+                              );
+                            }
                           ),
                         );
                       }),
