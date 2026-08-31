@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../cubit/chess_cubit.dart';
 import '../../cubit/chess_state.dart';
+import 'eval_bar.dart';
 import 'package:chess/chess.dart' as ch;
 
 class ChessBoard extends StatelessWidget {
@@ -12,21 +13,27 @@ class ChessBoard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ChessCubit, ChessState>(
       builder: (context, state) {
-        return AspectRatio(
-          aspectRatio: 1.0,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.brown[800]!, width: 2),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final boardSize = constraints.maxWidth;
-                final squareSize = boardSize / 8;
-                final isWhiteView = state.playerColor == ch.Color.WHITE;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Evaluamos el tamaño disponible
+            final double availableWidth = constraints.maxWidth;
+            final double availableHeight = constraints.maxHeight;
+            
+            // Restamos 32 del ancho para hacer espacio a la Eval Bar (24) y espaciado (8)
+            double maxBoardWidth = availableWidth - 32;
+            if (maxBoardWidth < 0) maxBoardWidth = 0;
+            
+            double boardSize = maxBoardWidth;
+            if (availableHeight != double.infinity && availableHeight < boardSize) {
+              boardSize = availableHeight;
+            }
 
-                final boardGrid = Column(
-                  children: List.generate(8, (rowIdx) {
-                    final rank = isWhiteView ? 8 - rowIdx : 1 + rowIdx;
+            final squareSize = boardSize / 8;
+            final isWhiteView = state.playerColor == ch.Color.WHITE;
+
+            final boardGrid = Column(
+              children: List.generate(8, (rowIdx) {
+                final rank = isWhiteView ? 8 - rowIdx : 1 + rowIdx;
 
                     return Expanded(
                       child: Row(
@@ -208,10 +215,30 @@ class ChessBoard extends StatelessWidget {
                   );
                 }
 
-                return Stack(children: [boardGrid, ?promotionOverlay]);
-              },
-            ),
-          ),
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: boardSize,
+                  child: EvalBarWidget(
+                    eval: state.currentEval,
+                    isWhiteView: isWhiteView,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: boardSize,
+                  height: boardSize,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.brown[800]!, width: 2),
+                  ),
+                  child: Stack(children: [boardGrid, if (promotionOverlay != null) promotionOverlay]),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -337,46 +364,30 @@ class MoveQualityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bgColor;
-    String text;
-    IconData? icon;
+    String assetName;
 
     switch (quality) {
-      case MoveQuality.brilliant: bgColor = Colors.cyan; text = '!!'; break;
-      case MoveQuality.great: bgColor = Colors.indigoAccent; text = '!'; break;
-      case MoveQuality.best: bgColor = Colors.green; icon = Icons.star; text = ''; break;
-      case MoveQuality.excellent: bgColor = Colors.green; text = '✓'; break;
-      case MoveQuality.good: bgColor = Colors.green[300]!; text = '👍'; break;
-      case MoveQuality.inaccuracy: bgColor = Colors.amber; text = '?!'; break;
-      case MoveQuality.mistake: bgColor = Colors.orange; text = '?'; break;
-      case MoveQuality.blunder: bgColor = Colors.red; text = '??'; break;
-      case MoveQuality.book: bgColor = Colors.brown; icon = Icons.menu_book; text = ''; break;
+      case MoveQuality.brilliant: assetName = 'brilliant'; break;
+      case MoveQuality.great: assetName = 'great'; break;
+      case MoveQuality.best: assetName = 'best'; break;
+      case MoveQuality.excellent: assetName = 'excellent'; break;
+      case MoveQuality.good: assetName = 'good'; break;
+      case MoveQuality.inaccuracy: assetName = 'inaccuracy'; break;
+      case MoveQuality.mistake: assetName = 'mistake'; break;
+      case MoveQuality.blunder: assetName = 'blunder'; break;
+      case MoveQuality.book: assetName = 'book'; break;
     }
 
     return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        color: bgColor,
+      width: 24,
+      height: 24,
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 1))
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))
         ]
       ),
-      alignment: Alignment.center,
-      child: icon != null 
-          ? Icon(icon, size: 12, color: Colors.white)
-          : Text(
-              text, 
-              style: const TextStyle(
-                color: Colors.white, 
-                fontSize: 10, 
-                fontWeight: FontWeight.bold,
-                height: 1.0,
-              ),
-              textAlign: TextAlign.center,
-            ),
+      child: SvgPicture.asset('assets/badges/$assetName.svg'),
     );
   }
 }

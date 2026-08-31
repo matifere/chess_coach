@@ -64,7 +64,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1026229798;
+  int get rustContentHash => -4549477;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -76,9 +76,17 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  int crateApiSimpleAnalyzePosition({required String fen});
+  Future<int> crateApiSimpleAnalyzePosition({required String fen});
 
-  String crateApiSimpleGetBestMove({required String fen, required int depth});
+  Future<int> crateApiSimpleEvaluateWithSearch({
+    required String fen,
+    required int depth,
+  });
+
+  Future<String> crateApiSimpleGetBestMove({
+    required String fen,
+    required int depth,
+  });
 
   bool crateApiSimpleInitNnue({required List<int> bytes});
 }
@@ -92,13 +100,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  int crateApiSimpleAnalyzePosition({required String fen}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<int> crateApiSimpleAnalyzePosition({required String fen}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(fen, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_i_32,
@@ -115,14 +128,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "analyze_position", argNames: ["fen"]);
 
   @override
-  String crateApiSimpleGetBestMove({required String fen, required int depth}) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<int> crateApiSimpleEvaluateWithSearch({
+    required String fen,
+    required int depth,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(fen, serializer);
           sse_encode_u_8(depth, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSimpleEvaluateWithSearchConstMeta,
+        argValues: [fen, depth],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSimpleEvaluateWithSearchConstMeta =>
+      const TaskConstMeta(
+        debugName: "evaluate_with_search",
+        argNames: ["fen", "depth"],
+      );
+
+  @override
+  Future<String> crateApiSimpleGetBestMove({
+    required String fen,
+    required int depth,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(fen, serializer);
+          sse_encode_u_8(depth, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -147,7 +203,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_list_prim_u_8_loose(bytes, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,

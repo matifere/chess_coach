@@ -9,8 +9,14 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 bool initNnue({required List<int> bytes}) =>
     RustLib.instance.api.crateApiSimpleInitNnue(bytes: bytes);
 
-int analyzePosition({required String fen}) =>
+Future<int> analyzePosition({required String fen}) =>
     RustLib.instance.api.crateApiSimpleAnalyzePosition(fen: fen);
 
-String getBestMove({required String fen, required int depth}) =>
+Future<String> getBestMove({required String fen, required int depth}) =>
     RustLib.instance.api.crateApiSimpleGetBestMove(fen: fen, depth: depth);
+
+Future<int> evaluateWithSearch({required String fen, required int depth}) =>
+    RustLib.instance.api.crateApiSimpleEvaluateWithSearch(
+      fen: fen,
+      depth: depth,
+    );

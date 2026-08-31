@@ -16,9 +16,13 @@ pub fn load_nnue_bytes(bytes: &[u8]) -> bool {
     }
 }
 
-pub fn evaluate(pos: &Chess) -> i32 {
+pub fn evaluate(pos: &Chess, ply: u8) -> i32 {
     if pos.is_checkmate() {
-        return if pos.turn() == Color::White { -9999 } else { 9999 };
+        // Si el turno es Blanco y hay jaque mate, el Blanco acaba de perder. 
+        // El puntaje para quien recibe mate es negativo, pero preferimos los mates rápidos,
+        // así que el puntaje es -10000 + ply (un mate en ply 1 es -9999, en ply 3 es -9997).
+        // El jugador atacante buscará maximizar el valor absoluto, lo cual minimiza el ply.
+        return if pos.turn() == Color::White { -10000 + (ply as i32) } else { 10000 - (ply as i32) };
     }
     if pos.is_game_over() { return 0; }
 
@@ -57,24 +61,66 @@ fn fallback_evaluate(pos: &Chess) -> i32 {
     score
 }
 
-pub fn search(pos: &Chess, depth: u8, mut alpha: i32, mut beta: i32) -> (Option<Move>, i32) {
-    if depth == 0 || pos.is_game_over() {
-        return (None, evaluate(pos));
+pub fn quiescence_search(pos: &Chess, mut alpha: i32, mut beta: i32, limit: u8, ply: u8) -> i32 {
+    let stand_pat = evaluate(pos, ply);
+    if pos.is_game_over() || limit == 0 {
+        return stand_pat;
+    }
+
+    let is_white = pos.turn() == Color::White;
+
+    if is_white {
+        if stand_pat >= beta { return beta; }
+        if alpha < stand_pat { alpha = stand_pat; }
+    } else {
+        if stand_pat <= alpha { return alpha; }
+        if beta > stand_pat { beta = stand_pat; }
+    }
+
+    let captures: Vec<Move> = pos.legal_moves().into_iter().filter(|m| m.is_capture()).collect();
+    
+    let mut best_score = stand_pat;
+
+    for m in captures {
+        let mut next_pos = pos.clone();
+        next_pos.play_unchecked(&m);
+        let score = quiescence_search(&next_pos, alpha, beta, limit - 1, ply + 1);
+
+        if is_white {
+            if score > best_score { best_score = score; }
+            alpha = cmp::max(alpha, best_score);
+        } else {
+            if score < best_score { best_score = score; }
+            beta = cmp::min(beta, best_score);
+        }
+        if beta <= alpha { break; }
+    }
+
+    best_score
+}
+
+pub fn search(pos: &Chess, depth: u8, mut alpha: i32, mut beta: i32, ply: u8) -> (Option<Move>, i32) {
+    if pos.is_game_over() {
+        return (None, evaluate(pos, ply));
+    }
+    if depth == 0 {
+        return (None, quiescence_search(pos, alpha, beta, 4, ply));
     }
 
     let mut best_move = None;
     let is_white = pos.turn() == Color::White;
-    let mut best_score = if is_white { -10000 } else { 10000 };
+    // Iniciamos con +/- 20000 para no chocar con el mate que es 10000
+    let mut best_score = if is_white { -20000 } else { 20000 };
 
     let moves = pos.legal_moves();
     if moves.is_empty() {
-        return (None, evaluate(pos));
+        return (None, evaluate(pos, ply));
     }
 
     for m in moves {
         let mut next_pos = pos.clone();
         next_pos.play_unchecked(&m);
-        let (_, score) = search(&next_pos, depth - 1, alpha, beta);
+        let (_, score) = search(&next_pos, depth - 1, alpha, beta, ply + 1);
 
         if is_white {
             if score > best_score {
