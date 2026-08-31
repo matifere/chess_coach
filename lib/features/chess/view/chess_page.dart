@@ -165,6 +165,33 @@ class SideMenu extends StatelessWidget {
           },
         ),
 
+        const SizedBox(height: 24),
+        
+        // Selector de Elo
+        BlocBuilder<ChessCubit, ChessState>(
+          buildWhen: (previous, current) => previous.botElo != current.botElo,
+          builder: (context, state) {
+            return Column(
+              children: [
+                Text(
+                  'Nivel del Bot: ${state.botElo} Elo',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Slider(
+                  value: state.botElo.toDouble(),
+                  min: 600,
+                  max: 2200,
+                  divisions: 8,
+                  label: '${state.botElo} Elo',
+                  onChanged: (value) {
+                    context.read<ChessCubit>().setBotElo(value.toInt());
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+
         const Divider(height: 32),
 
         // PGN History

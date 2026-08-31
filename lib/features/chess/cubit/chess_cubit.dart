@@ -57,7 +57,7 @@ class ChessCubit extends Cubit<ChessState> {
           (to[1] == '8' || to[1] == '1')) {
         emit(state.copyWith(pendingPromotion: {'from': from, 'to': to}));
       } else {
-        _makeMove(from, to);
+        _makeMove(from, to, wasDragged: true);
       }
     } else {
       emit(state.copyWith(clearSelection: true));
@@ -76,8 +76,24 @@ class ChessCubit extends Cubit<ChessState> {
     );
   }
 
-  void _makeMove(String from, String to, {String? promotion, bool isBotMove = false}) {
+  void _makeMove(String from, String to, {String? promotion, bool isBotMove = false, bool wasDragged = false}) {
     final newGame = ch.Chess.fromFEN(state.game.fen);
+
+    // Detectar enroque para animar la torre también
+    final piece = newGame.get(from);
+    Map<String, String>? secondaryMove;
+    if (piece != null && piece.type == ch.PieceType.KING) {
+      int fileFrom = from.codeUnitAt(0);
+      int fileTo = to.codeUnitAt(0);
+      if ((fileFrom - fileTo).abs() == 2) {
+        String rank = from[1];
+        if (fileTo > fileFrom) {
+          secondaryMove = {'from': 'h$rank', 'to': 'f$rank'};
+        } else {
+          secondaryMove = {'from': 'a$rank', 'to': 'd$rank'};
+        }
+      }
+    }
 
     Map<String, dynamic> moveObj = {'from': from, 'to': to};
     if (promotion != null) {
@@ -103,6 +119,8 @@ class ChessCubit extends Cubit<ChessState> {
             'from': from,
             'to': to,
             'quality': randomQuality,
+            'wasDragged': wasDragged,
+            if (secondaryMove != null) 'secondaryMove': secondaryMove,
           },
         ),
       );
@@ -123,8 +141,13 @@ class ChessCubit extends Cubit<ChessState> {
 
     final fen = state.game.fen;
     
-    // Depth 3 para rapidez, luego lo movemos a un isolate
-    final uciMove = rust_api.getBestMove(fen: fen, depth: 3);
+    // Mapeamos el Elo a profundidad de búsqueda (Depth 1 a 4)
+    // 600 -> 1, 1000 -> 2, 1400 -> 3, 1800+ -> 4
+    int depth = (state.botElo / 450).floor(); 
+    if (depth < 1) depth = 1;
+    if (depth > 4) depth = 4;
+
+    final uciMove = rust_api.getBestMove(fen: fen, depth: depth);
 
     if (uciMove.isNotEmpty && uciMove.length >= 4) {
       final from = uciMove.substring(0, 2);
@@ -160,6 +183,10 @@ class ChessCubit extends Cubit<ChessState> {
     if (state.game.turn != color && !_isGameOver()) {
       _triggerBotMove();
     }
+  }
+
+  void setBotElo(int elo) {
+    emit(state.copyWith(botElo: elo));
   }
 
   void resign() {

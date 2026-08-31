@@ -21,6 +21,7 @@ class ChessState extends Equatable {
   final Map<String, String>? pendingPromotion;
   final ch.Color? resignedPlayer;
   final Map<String, dynamic>? lastMoveFeedback;
+  final int botElo;
 
   const ChessState({
     required this.game,
@@ -30,6 +31,7 @@ class ChessState extends Equatable {
     this.pendingPromotion,
     this.resignedPlayer,
     this.lastMoveFeedback,
+    this.botElo = 1000,
   });
 
   ChessState copyWith({
@@ -40,6 +42,7 @@ class ChessState extends Equatable {
     Map<String, String>? pendingPromotion,
     ch.Color? resignedPlayer,
     Map<String, dynamic>? lastMoveFeedback,
+    int? botElo,
     bool clearSelection = false,
     bool clearPendingPromotion = false,
     bool clearResignedPlayer = false,
@@ -60,6 +63,7 @@ class ChessState extends Equatable {
           ? null
           : (resignedPlayer ?? this.resignedPlayer),
       lastMoveFeedback: lastMoveFeedback ?? this.lastMoveFeedback,
+      botElo: botElo ?? this.botElo,
     );
   }
 
@@ -72,5 +76,6 @@ class ChessState extends Equatable {
     pendingPromotion,
     resignedPlayer,
     lastMoveFeedback,
+    botElo,
   ];
 }

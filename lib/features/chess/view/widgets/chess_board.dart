@@ -104,57 +104,15 @@ class ChessBoard extends StatelessWidget {
                                             if (piece != null)
                                               Positioned.fill(
                                                 child: Padding(
-                                                  padding: const EdgeInsets.all(
-                                                    4.0,
+                                                  padding: const EdgeInsets.all(4.0),
+                                                  child: _buildAnimatedPiece(
+                                                    context,
+                                                    state,
+                                                    squareId,
+                                                    piece,
+                                                    currentSquareSize,
+                                                    isWhiteView,
                                                   ),
-                                                  child:
-                                                      piece.color ==
-                                                          state.game.turn
-                                                      ? Draggable<String>(
-                                                          data: squareId,
-                                                          onDragStarted: () {
-                                                            context
-                                                                .read<
-                                                                  ChessCubit
-                                                                >()
-                                                                .onSquareTapped(
-                                                                  squareId,
-                                                                );
-                                                          },
-                                                          feedback: Material(
-                                                            color: Colors
-                                                                .transparent,
-                                                            child: SizedBox(
-                                                              width:
-                                                                  currentSquareSize,
-                                                              height:
-                                                                  currentSquareSize,
-                                                              child: Padding(
-                                                                padding:
-                                                                    const EdgeInsets.all(
-                                                                      4.0,
-                                                                    ),
-                                                                child:
-                                                                    _getPieceWidget(
-                                                                      piece,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          childWhenDragging:
-                                                              Opacity(
-                                                                opacity: 0.2,
-                                                                child:
-                                                                    _getPieceWidget(
-                                                                      piece,
-                                                                    ),
-                                                              ),
-                                                          child:
-                                                              _getPieceWidget(
-                                                                piece,
-                                                              ),
-                                                        )
-                                                      : _getPieceWidget(piece),
                                                 ),
                                               ),
                                               
@@ -257,6 +215,90 @@ class ChessBoard extends StatelessWidget {
         );
       },
     );
+  }
+
+  int _getColIdx(String sq, bool isWhiteView) {
+    int file = sq.codeUnitAt(0) - 'a'.codeUnitAt(0);
+    return isWhiteView ? file : 7 - file;
+  }
+
+  int _getRowIdx(String sq, bool isWhiteView) {
+    int rank = int.parse(sq[1]);
+    return isWhiteView ? 8 - rank : rank - 1;
+  }
+
+  Widget _buildAnimatedPiece(
+    BuildContext context,
+    ChessState state,
+    String squareId,
+    ch.Piece piece,
+    double currentSquareSize,
+    bool isWhiteView,
+  ) {
+    Widget pieceWidget = piece.color == state.game.turn
+        ? Draggable<String>(
+            data: squareId,
+            onDragStarted: () {
+              context.read<ChessCubit>().onSquareTapped(squareId);
+            },
+            feedback: Material(
+              color: Colors.transparent,
+              child: SizedBox(
+                width: currentSquareSize,
+                height: currentSquareSize,
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: _getPieceWidget(piece),
+                ),
+              ),
+            ),
+            childWhenDragging: Opacity(
+              opacity: 0.2,
+              child: _getPieceWidget(piece),
+            ),
+            child: _getPieceWidget(piece),
+          )
+        : _getPieceWidget(piece);
+
+    final wasDragged = state.lastMoveFeedback?['wasDragged'] == true;
+    if (!wasDragged && state.lastMoveFeedback != null) {
+      String? animFrom;
+      String? animTo;
+
+      if (state.lastMoveFeedback!['to'] == squareId) {
+        animFrom = state.lastMoveFeedback!['from'];
+        animTo = squareId;
+      } else if (state.lastMoveFeedback!['secondaryMove']?['to'] == squareId) {
+        animFrom = state.lastMoveFeedback!['secondaryMove']!['from'];
+        animTo = squareId;
+      }
+
+      if (animFrom != null && animTo != null) {
+        int colFrom = _getColIdx(animFrom, isWhiteView);
+        int rowFrom = _getRowIdx(animFrom, isWhiteView);
+        int colTo = _getColIdx(animTo, isWhiteView);
+        int rowTo = _getRowIdx(animTo, isWhiteView);
+
+        double dx = (colFrom - colTo) * currentSquareSize;
+        double dy = (rowFrom - rowTo) * currentSquareSize;
+
+        return TweenAnimationBuilder<Offset>(
+          key: ValueKey('${state.game.fen}_${animFrom}_$animTo'),
+          tween: Tween<Offset>(begin: Offset(dx, dy), end: Offset.zero),
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          builder: (context, offset, child) {
+            return Transform.translate(
+              offset: offset,
+              child: child,
+            );
+          },
+          child: pieceWidget,
+        );
+      }
+    }
+
+    return pieceWidget;
   }
 
   Widget _getPieceWidget(ch.Piece piece) {
