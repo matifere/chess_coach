@@ -142,6 +142,27 @@ class SideMenu extends StatelessWidget {
             );
           },
         ),
+        BlocBuilder<ChessCubit, ChessState>(
+          buildWhen: (p, c) => p.lastMoveFeedback?['openingName'] != c.lastMoveFeedback?['openingName'],
+          builder: (context, state) {
+            final opening = state.lastMoveFeedback?['openingName'] as String?;
+            if (opening != null && opening.isNotEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 8.0, left: 16.0, right: 16.0),
+                child: Text(
+                  opening,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.brown,
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
         const Divider(height: 32),
 
         // Player Color Selector
@@ -169,24 +190,37 @@ class SideMenu extends StatelessWidget {
         
         // Selector de Elo
         BlocBuilder<ChessCubit, ChessState>(
-          buildWhen: (previous, current) => previous.botElo != current.botElo,
+          buildWhen: (previous, current) => 
+              previous.botElo != current.botElo ||
+              previous.game.history.isEmpty != current.game.history.isEmpty,
           builder: (context, state) {
+            final isGameActive = state.game.history.isNotEmpty;
             return Column(
               children: [
                 Text(
                   'Nivel del Bot: ${state.botElo} Elo',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isGameActive ? Colors.grey : Colors.black,
+                  ),
                 ),
                 Slider(
                   value: state.botElo.toDouble(),
                   min: 600,
                   max: 2200,
-                  divisions: 8,
+                  divisions: 160,
                   label: '${state.botElo} Elo',
-                  onChanged: (value) {
-                    context.read<ChessCubit>().setBotElo(value.toInt());
-                  },
+                  onChanged: isGameActive 
+                    ? null 
+                    : (value) {
+                        context.read<ChessCubit>().setBotElo(value.toInt());
+                      },
                 ),
+                if (isGameActive)
+                  const Text(
+                    '(Fijado durante la partida)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
               ],
             );
           },

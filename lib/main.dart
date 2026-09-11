@@ -3,10 +3,12 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:chess_coach/src/rust/api/simple.dart' as rust_api;
 import 'package:chess_coach/src/rust/frb_generated.dart';
 import 'features/chess/view/chess_page.dart';
+import 'features/chess/services/openings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
+  await OpeningsService().loadOpenings();
 
   // Load the NNUE network
   try {

@@ -4,6 +4,7 @@ import 'package:chess/chess.dart' as ch;
 import 'chess_state.dart';
 import 'package:chess_coach/src/rust/api/simple.dart' as rust_api;
 import '../services/stockfish_service.dart';
+import '../services/openings_service.dart';
 class ChessCubit extends Cubit<ChessState> {
   ChessCubit() : super(ChessState(game: ch.Chess()));
 
@@ -77,7 +78,7 @@ class ChessCubit extends Cubit<ChessState> {
   }
 
   Future<void> _makeMove(String from, String to, {String? promotion, bool isBotMove = false, bool wasDragged = false}) async {
-    final newGame = ch.Chess.fromFEN(state.game.fen);
+    final newGame = state.game.copy();
 
     // Detectar enroque para animar la torre también
     final piece = newGame.get(from);
@@ -147,30 +148,25 @@ class ChessCubit extends Cubit<ChessState> {
       double loss = winProbBefore - winProbAfter;
 
       MoveQuality computedQuality = MoveQuality.good;
-      if (loss <= 0.02) {
+      if (loss <= 0.015) {
         computedQuality = MoveQuality.best;
-        if (loss < -0.02) computedQuality = MoveQuality.great;
-      } else if (loss <= 0.05) {
+        if (loss < -0.015) computedQuality = MoveQuality.great;
+      } else if (loss <= 0.03) {
         computedQuality = MoveQuality.excellent;
-      } else if (loss <= 0.10) {
+      } else if (loss <= 0.06) {
         computedQuality = MoveQuality.good;
-      } else if (loss <= 0.20) {
+      } else if (loss <= 0.10) {
         computedQuality = MoveQuality.inaccuracy;
-      } else if (loss <= 0.30) {
+      } else if (loss <= 0.15) {
         computedQuality = MoveQuality.mistake;
       } else {
         computedQuality = MoveQuality.blunder;
       }
 
-      int fullmoves = 1;
-      try {
-        fullmoves = int.parse(newFen.split(' ').last);
-      } catch (e) {}
-
-      if (fullmoves <= 5 && loss <= 0.10) {
+      if (OpeningsService().isBookMove(newGame)) {
         computedQuality = MoveQuality.book;
       }
-
+      final openingName = OpeningsService().getOpeningName(newGame);
       // La evaluación de la UI es exactamente la evaluación que acabamos de calcular
       final uiEval = evalAfter;
 
@@ -178,6 +174,9 @@ class ChessCubit extends Cubit<ChessState> {
       if (state.game.fen == newFen) {
         final finalFeedback = Map<String, dynamic>.from(state.lastMoveFeedback ?? {});
         finalFeedback['quality'] = computedQuality;
+        if (openingName != null) {
+          finalFeedback['openingName'] = openingName;
+        }
         
         emit(
           state.copyWith(
@@ -259,7 +258,7 @@ class ChessCubit extends Cubit<ChessState> {
   }
 
   void resetGame() {
-    emit(ChessState(game: ch.Chess(), playerColor: state.playerColor));
+    emit(ChessState(game: ch.Chess(), playerColor: state.playerColor, botElo: state.botElo));
     if (state.playerColor == ch.Color.BLACK) {
       _triggerBotMove();
     }
