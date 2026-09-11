@@ -23,6 +23,7 @@ class ChessState extends Equatable {
   final Map<String, dynamic>? lastMoveFeedback;
   final int botElo;
   final int currentEval;
+  final String? practiceOpening;
 
   const ChessState({
     required this.game,
@@ -34,6 +35,7 @@ class ChessState extends Equatable {
     this.lastMoveFeedback,
     this.botElo = 1000,
     this.currentEval = 30, // Ventaja típica de salida para blancas
+    this.practiceOpening,
   });
 
   ChessState copyWith({
@@ -46,6 +48,7 @@ class ChessState extends Equatable {
     Map<String, dynamic>? lastMoveFeedback,
     int? botElo,
     int? currentEval,
+    String? practiceOpening,
     bool clearSelection = false,
     bool clearPendingPromotion = false,
     bool clearResignedPlayer = false,
@@ -68,6 +71,7 @@ class ChessState extends Equatable {
       lastMoveFeedback: lastMoveFeedback ?? this.lastMoveFeedback,
       botElo: botElo ?? this.botElo,
       currentEval: currentEval ?? this.currentEval,
+      practiceOpening: practiceOpening ?? this.practiceOpening,
     );
   }
 
@@ -82,5 +86,6 @@ class ChessState extends Equatable {
     lastMoveFeedback,
     botElo,
     currentEval,
+    practiceOpening,
   ];
 }

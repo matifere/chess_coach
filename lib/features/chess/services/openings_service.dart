@@ -76,4 +76,41 @@ class OpeningsService {
     // If it's a valid book node, return the closest name.
     return lastName;
   }
+
+  /// Get valid book moves from the current position.
+  /// If [targetOpening] is provided, only returns moves that eventually lead to that opening.
+  List<String> getBookMoves(ch.Chess game, {String? targetOpening}) {
+    final node = getNode(game);
+    if (node == null || !node.containsKey('c')) return [];
+
+    final children = node['c'] as Map<String, dynamic>;
+    final allMoves = children.keys.cast<String>().toList();
+
+    if (targetOpening == null || targetOpening.isEmpty) {
+      return allMoves;
+    }
+
+    final targetLower = targetOpening.toLowerCase();
+    return allMoves.where((move) {
+      final childNode = children[move] as Map<String, dynamic>;
+      return _subtreeContains(childNode, targetLower);
+    }).toList();
+  }
+
+  bool _subtreeContains(Map<String, dynamic> node, String targetOpening) {
+    if (node.containsKey('n')) {
+      final name = (node['n'] as String).toLowerCase();
+      if (name.contains(targetOpening)) {
+        return true;
+      }
+    }
+    if (node.containsKey('c')) {
+      for (final child in (node['c'] as Map<String, dynamic>).values) {
+        if (_subtreeContains(child as Map<String, dynamic>, targetOpening)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

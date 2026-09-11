@@ -228,6 +228,53 @@ class SideMenu extends StatelessWidget {
 
         const Divider(height: 32),
 
+        // Selector de Apertura
+        BlocBuilder<ChessCubit, ChessState>(
+          buildWhen: (previous, current) => 
+              previous.practiceOpening != current.practiceOpening ||
+              previous.game.history.isEmpty != current.game.history.isEmpty,
+          builder: (context, state) {
+            final isGameActive = state.game.history.isNotEmpty;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Practicar Apertura:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isGameActive ? Colors.grey : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<String?>(
+                  isExpanded: true,
+                  value: state.practiceOpening,
+                  hint: const Text('Cualquiera (Aleatorio)'),
+                  disabledHint: Text(state.practiceOpening ?? 'Cualquiera (Aleatorio)'),
+                  onChanged: isGameActive ? null : (String? newValue) {
+                    context.read<ChessCubit>().setPracticeOpening(newValue);
+                  },
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('Cualquiera (Aleatorio)')),
+                    DropdownMenuItem(value: 'Caro-Kann', child: Text('Caro-Kann Defense')),
+                    DropdownMenuItem(value: 'Sicilian', child: Text('Sicilian Defense')),
+                    DropdownMenuItem(value: 'French', child: Text('French Defense')),
+                    DropdownMenuItem(value: 'Ruy Lopez', child: Text('Ruy Lopez')),
+                    DropdownMenuItem(value: 'Italian', child: Text('Italian Game')),
+                    DropdownMenuItem(value: 'Queen\'s Gambit', child: Text('Queen\'s Gambit')),
+                    DropdownMenuItem(value: 'King\'s Indian', child: Text('King\'s Indian Defense')),
+                    DropdownMenuItem(value: 'Alekhine', child: Text('Alekhine Defense')),
+                    DropdownMenuItem(value: 'Scandinavian', child: Text('Scandinavian Defense')),
+                    DropdownMenuItem(value: 'Slav', child: Text('Slav Defense')),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+
+        const Divider(height: 32),
+
         // PGN History
         const Text(
           'Historial de Jugadas',

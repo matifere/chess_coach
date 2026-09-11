@@ -205,6 +205,25 @@ class ChessCubit extends Cubit<ChessState> {
 
     final fen = state.game.fen;
     
+    // 1. Intentar hacer una jugada de libro teórica si estamos practicando una apertura o si estamos en la teoría
+    final validBookMoves = OpeningsService().getBookMoves(state.game, targetOpening: state.practiceOpening);
+    if (validBookMoves.isNotEmpty) {
+      // Elegir aleatoriamente entre las jugadas de libro válidas
+      validBookMoves.shuffle();
+      final uciMove = validBookMoves.first;
+      final from = uciMove.substring(0, 2);
+      final to = uciMove.substring(2, 4);
+      String? promotion;
+      if (uciMove.length == 5) {
+        promotion = uciMove[4];
+      }
+      
+      print('🤖 MAIA juega de LIBRO: $from$to (Target: ${state.practiceOpening ?? "ninguno"})');
+      _makeMove(from, to, promotion: promotion, isBotMove: true);
+      return;
+    }
+
+    // 2. Si no hay jugadas de libro (o nos salimos de la teoría), usar el motor
     int depth = (state.botElo / 450).floor(); 
     if (depth < 1) depth = 1;
     if (depth > 4) depth = 4;
@@ -259,10 +278,21 @@ class ChessCubit extends Cubit<ChessState> {
   }
 
   void resetGame() {
-    emit(ChessState(game: ch.Chess(), playerColor: state.playerColor, botElo: state.botElo));
+    emit(ChessState(
+      game: ch.Chess(), 
+      playerColor: state.playerColor, 
+      botElo: state.botElo,
+      practiceOpening: state.practiceOpening,
+    ));
     if (state.playerColor == ch.Color.BLACK) {
       _triggerBotMove();
     }
+  }
+
+  void setPracticeOpening(String? opening) {
+    emit(state.copyWith(practiceOpening: opening));
+    // Si estamos en el turno del bot y en la jugada 1, forzamos un recalculo? 
+    // No hace falta, el usuario lo elige antes de empezar.
   }
 
   bool _isGameOver() {
