@@ -37,38 +37,45 @@ class EvalBarWidget extends StatelessWidget {
       if (evalText == "0.0") evalText = "0.0";
     }
 
-    return Container(
-      width: 24,
-      decoration: BoxDecoration(
-        color: topColor,
-        border: Border.all(color: Colors.brown[800]!, width: 2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            FractionallySizedBox(
-              heightFactor: fillPercentage,
-              widthFactor: 1.0,
-              child: Container(color: bottomColor),
-            ),
-            Positioned(
-              top: whiteAdvantage == isWhiteView ? null : 4,
-              bottom: whiteAdvantage == isWhiteView ? 4 : null,
-              child: Text(
-                evalText,
-                style: TextStyle(
-                  color: whiteAdvantage ? Colors.black87 : Colors.white70,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.5, end: fillPercentage),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+      builder: (context, animatedFill, child) {
+        return Container(
+          width: 24,
+          decoration: BoxDecoration(
+            color: topColor,
+            border: Border.all(color: Colors.brown[800]!, width: 2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                FractionallySizedBox(
+                  heightFactor: animatedFill,
+                  widthFactor: 1.0,
+                  child: Container(color: bottomColor),
                 ),
-              ),
+                Positioned(
+                  top: whiteAdvantage == isWhiteView ? null : 4,
+                  bottom: whiteAdvantage == isWhiteView ? 4 : null,
+                  child: Text(
+                    evalText,
+                    style: TextStyle(
+                      color: whiteAdvantage ? Colors.black87 : Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

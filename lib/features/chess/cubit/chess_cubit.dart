@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:chess/chess.dart' as ch;
 import 'chess_state.dart';
 import 'package:chess_coach/src/rust/api/simple.dart' as rust_api;
-
+import '../services/stockfish_service.dart';
 class ChessCubit extends Cubit<ChessState> {
   ChessCubit() : super(ChessState(game: ch.Chess()));
 
@@ -128,20 +128,14 @@ class ChessCubit extends Cubit<ChessState> {
       // Actualizamos UI de inmediato
 
 
-      // OPTIMIZACIÓN EXTREMA: 
-      // Antes ejecutábamos 3 búsquedas pesadas: D2 (viejo), D2 (nuevo), y D4 (uiEval).
-      // ¡Pero la evaluación del tablero viejo (evalBefore) ES EXACTAMENTE la evaluación
-      // que calculamos en el turno anterior y guardamos en state.currentEval!
       int evalBefore = state.currentEval;
       if (state.lastMoveFeedback == null && evalBefore == 0) {
-        // Solo en el primerísimo movimiento de la partida calculamos el viejo
-        evalBefore = await rust_api.evaluateWithSearch(fen: oldFen, depth: 3);
+        final sfBefore = await StockfishService().evaluatePosition(oldFen, depth: 10);
+        evalBefore = sfBefore.score;
       }
 
-      // Ahora solo necesitamos UNA sola búsqueda para el tablero nuevo.
-      // Usamos Depth 3. Al tener Quiescence Search nativo en Rust, Depth 3 es 
-      // extremadamente estable, descubre tácticas, y es 98% más rápido que Depth 4.
-      final evalAfter = await rust_api.evaluateWithSearch(fen: newFen, depth: 3);
+      final sfAfter = await StockfishService().evaluatePosition(newFen, depth: 10);
+      final evalAfter = sfAfter.score;
 
       double getWinProb(int cp) {
         return 1.0 / (1.0 + exp(-0.00368208 * cp));
@@ -214,9 +208,11 @@ class ChessCubit extends Cubit<ChessState> {
     int depth = (state.botElo / 450).floor(); 
     if (depth < 1) depth = 1;
     if (depth > 4) depth = 4;
+    
+    print('🤖 MAIA ELO: ${state.botElo} -> Jugando a Profundidad (Depth): $depth');
 
-    // Llamada asíncrona a Rust
-    final uciMove = await rust_api.getBestMove(fen: fen, depth: depth);
+    // Llamada asíncrona a Rust pasando el Elo para añadir ruido (noise)
+    final uciMove = await rust_api.getBestMove(fen: fen, depth: depth, elo: state.botElo);
 
     if (uciMove.isNotEmpty && uciMove.length >= 4) {
       final from = uciMove.substring(0, 2);

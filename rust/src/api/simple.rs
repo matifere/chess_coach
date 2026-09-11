@@ -15,10 +15,10 @@ pub fn analyze_position(fen: String) -> i32 {
         Ok(p) => p,
         Err(_) => return 0,
     };
-    engine::evaluate(&pos, 0)
+    engine::evaluate(&pos, 0, None)
 }
 
-pub fn get_best_move(fen: String, depth: u8) -> String {
+pub fn get_best_move(fen: String, depth: u8, elo: u16) -> String {
     let setup = match Fen::from_ascii(fen.as_bytes()) {
         Ok(s) => s,
         Err(_) => return String::new(),
@@ -27,7 +27,7 @@ pub fn get_best_move(fen: String, depth: u8) -> String {
         Ok(p) => p,
         Err(_) => return String::new(),
     };
-    let (best_move, _) = engine::search(&pos, depth, -20000, 20000, 0);
+    let (best_move, _) = engine::search(&pos, depth, -20000, 20000, 0, Some(elo));
     
     match best_move {
         Some(m) => m.to_uci(CastlingMode::Standard).to_string(),
@@ -44,6 +44,6 @@ pub fn evaluate_with_search(fen: String, depth: u8) -> i32 {
         Ok(p) => p,
         Err(_) => return 0,
     };
-    let (_, score) = engine::search(&pos, depth, -20000, 20000, 0);
+    let (_, score) = engine::search(&pos, depth, -20000, 20000, 0, None);
     score
 }

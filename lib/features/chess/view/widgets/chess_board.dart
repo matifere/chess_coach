@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -53,6 +54,7 @@ class ChessBoard extends StatelessWidget {
                           final isLegalMove = state.legalMoveDestinations
                               .contains(squareId);
                           final piece = state.game.get(squareId);
+                          final hasPieceToCapture = piece != null && piece.color != state.game.turn;
 
                           // Historial y Coach Feedback
                           final isLastMoveFrom = state.lastMoveFeedback?['from'] == squareId;
@@ -76,7 +78,7 @@ class ChessBoard extends StatelessWidget {
 
                                 return DragTarget<String>(
                                   onWillAcceptWithDetails: (details) => true,
-                                  onAcceptWithDetails: (details) {
+                                  onAcceptWithDetails: (details) { HapticFeedback.mediumImpact();
                                     context.read<ChessCubit>().onDraggedMove(
                                       details.data,
                                       squareId,
@@ -84,27 +86,40 @@ class ChessBoard extends StatelessWidget {
                                   },
                                   builder: (context, candidateData, rejectedData) {
                                     return GestureDetector(
-                                      onTap: () => context
+                                      onTap: () { HapticFeedback.lightImpact(); context
                                           .read<ChessCubit>()
-                                          .onSquareTapped(squareId),
+                                          .onSquareTapped(squareId); },
                                       child: Container(
                                         color: finalColor,
                                         child: Stack(
                                           clipBehavior: Clip.none,
                                           children: [
                                             if (isLegalMove)
-                                              Center(
-                                                child: FractionallySizedBox(
-                                                  widthFactor: 0.3,
-                                                  heightFactor: 0.3,
-                                                  child: Container(
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                          color: Colors.black26,
-                                                          shape:
-                                                              BoxShape.circle,
+                                              Positioned.fill(
+                                                child: TweenAnimationBuilder<double>(
+                                                  tween: Tween<double>(begin: 0.0, end: 1.0),
+                                                  duration: const Duration(milliseconds: 150),
+                                                  curve: Curves.easeOutBack,
+                                                  builder: (context, scale, child) {
+                                                    return Transform.scale(
+                                                      scale: scale,
+                                                      child: FractionallySizedBox(
+                                                        widthFactor: hasPieceToCapture ? 0.9 : 0.3,
+                                                        heightFactor: hasPieceToCapture ? 0.9 : 0.3,
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            color: hasPieceToCapture 
+                                                                ? Colors.transparent 
+                                                                : Colors.black.withValues(alpha: 0.2),
+                                                            shape: BoxShape.circle,
+                                                            border: hasPieceToCapture 
+                                                                ? Border.all(color: Colors.black.withValues(alpha: 0.2), width: 6)
+                                                                : null,
+                                                          ),
                                                         ),
-                                                  ),
+                                                      ),
+                                                    );
+                                                  },
                                                 ),
                                               ),
 
@@ -188,9 +203,9 @@ class ChessBoard extends StatelessWidget {
                                 .map(
                                   (p) => Expanded(
                                     child: GestureDetector(
-                                      onTap: () => context
+                                      onTap: () { HapticFeedback.lightImpact(); context
                                           .read<ChessCubit>()
-                                          .executePromotion(p),
+                                          .executePromotion(p); },
                                       child: Container(
                                         decoration: const BoxDecoration(
                                           border: Border(
@@ -266,16 +281,32 @@ class ChessBoard extends StatelessWidget {
         ? Draggable<String>(
             data: squareId,
             onDragStarted: () {
+              HapticFeedback.lightImpact();
               context.read<ChessCubit>().onSquareTapped(squareId);
             },
             feedback: Material(
               color: Colors.transparent,
-              child: SizedBox(
-                width: currentSquareSize,
-                height: currentSquareSize,
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: _getPieceWidget(piece),
+              child: Transform.scale(
+                scale: 1.3,
+                child: SizedBox(
+                  width: currentSquareSize,
+                  height: currentSquareSize,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
+                        shape: BoxShape.circle,
+                      ),
+                      child: _getPieceWidget(piece),
+                    ),
+                  ),
                 ),
               ),
             ),

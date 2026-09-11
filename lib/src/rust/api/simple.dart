@@ -12,8 +12,15 @@ bool initNnue({required List<int> bytes}) =>
 Future<int> analyzePosition({required String fen}) =>
     RustLib.instance.api.crateApiSimpleAnalyzePosition(fen: fen);
 
-Future<String> getBestMove({required String fen, required int depth}) =>
-    RustLib.instance.api.crateApiSimpleGetBestMove(fen: fen, depth: depth);
+Future<String> getBestMove({
+  required String fen,
+  required int depth,
+  required int elo,
+}) => RustLib.instance.api.crateApiSimpleGetBestMove(
+  fen: fen,
+  depth: depth,
+  elo: elo,
+);
 
 Future<int> evaluateWithSearch({required String fen, required int depth}) =>
     RustLib.instance.api.crateApiSimpleEvaluateWithSearch(

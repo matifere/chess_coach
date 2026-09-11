@@ -86,6 +86,7 @@ abstract class RustLibApi extends BaseApi {
   Future<String> crateApiSimpleGetBestMove({
     required String fen,
     required int depth,
+    required int elo,
   });
 
   bool crateApiSimpleInitNnue({required List<int> bytes});
@@ -166,6 +167,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<String> crateApiSimpleGetBestMove({
     required String fen,
     required int depth,
+    required int elo,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -173,6 +175,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(fen, serializer);
           sse_encode_u_8(depth, serializer);
+          sse_encode_u_16(elo, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -185,7 +188,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSimpleGetBestMoveConstMeta,
-        argValues: [fen, depth],
+        argValues: [fen, depth, elo],
         apiImpl: this,
       ),
     );
@@ -193,7 +196,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiSimpleGetBestMoveConstMeta => const TaskConstMeta(
     debugName: "get_best_move",
-    argNames: ["fen", "depth"],
+    argNames: ["fen", "depth", "elo"],
   );
 
   @override
@@ -250,6 +253,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -292,6 +301,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint16();
   }
 
   @protected
@@ -343,6 +358,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint16(self);
   }
 
   @protected
