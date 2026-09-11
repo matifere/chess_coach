@@ -122,6 +122,7 @@ class ChessCubit extends Cubit<ChessState> {
             'to': to,
             'wasDragged': wasDragged,
             if (secondaryMove != null) 'secondaryMove': secondaryMove,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
           },
         ),
       );

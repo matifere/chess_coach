@@ -332,27 +332,30 @@ class ChessBoard extends StatelessWidget {
       }
 
       if (animFrom != null && animTo != null) {
-        int colFrom = _getColIdx(animFrom, isWhiteView);
-        int rowFrom = _getRowIdx(animFrom, isWhiteView);
-        int colTo = _getColIdx(animTo, isWhiteView);
-        int rowTo = _getRowIdx(animTo, isWhiteView);
+        final timestamp = state.lastMoveFeedback!['timestamp'] as int?;
+        if (timestamp != null && DateTime.now().millisecondsSinceEpoch - timestamp < 350) {
+          int colFrom = _getColIdx(animFrom, isWhiteView);
+          int rowFrom = _getRowIdx(animFrom, isWhiteView);
+          int colTo = _getColIdx(animTo, isWhiteView);
+          int rowTo = _getRowIdx(animTo, isWhiteView);
 
-        double dx = (colFrom - colTo) * currentSquareSize;
-        double dy = (rowFrom - rowTo) * currentSquareSize;
+          double dx = (colFrom - colTo) * currentSquareSize;
+          double dy = (rowFrom - rowTo) * currentSquareSize;
 
-        return TweenAnimationBuilder<Offset>(
-          key: ValueKey('${state.game.fen}_${animFrom}_$animTo'),
-          tween: Tween<Offset>(begin: Offset(dx, dy), end: Offset.zero),
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          builder: (context, offset, child) {
-            return Transform.translate(
-              offset: offset,
-              child: child,
-            );
-          },
-          child: pieceWidget,
-        );
+          return TweenAnimationBuilder<Offset>(
+            key: ValueKey('${state.game.fen}_${animFrom}_$animTo'),
+            tween: Tween<Offset>(begin: Offset(dx, dy), end: Offset.zero),
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            builder: (context, offset, child) {
+              return Transform.translate(
+                offset: offset,
+                child: child,
+              );
+            },
+            child: pieceWidget,
+          );
+        }
       }
     }
 
