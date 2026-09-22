@@ -10,19 +10,36 @@ class ChessCubit extends Cubit<ChessState> {
 
   void onSquareTapped(String square) {
     if (state.pendingPromotion != null || _isGameOver()) return;
-    if (state.game.turn != state.playerColor) return; // Turno del bot
 
     if (state.selectedSquare != null) {
+      if (state.game.turn != state.playerColor) {
+        // Lógica de premove (tap)
+        if (state.selectedSquare != square) {
+          final piece = state.game.get(state.selectedSquare!);
+          if (piece != null && piece.color == state.playerColor) {
+            // Generación pseudo-legal para premoves
+            final copy = state.game.copy();
+            copy.turn = state.playerColor;
+            final moves = copy.generate_moves({'square': state.selectedSquare!});
+            if (moves.any((m) => m.toAlgebraic == square)) {
+              emit(state.copyWith(
+                premove: {'from': state.selectedSquare!, 'to': square},
+                clearSelection: true,
+              ));
+              return;
+            }
+          }
+        }
+        emit(state.copyWith(clearSelection: true, clearPremove: true));
+        return;
+      }
+
       if (state.legalMoveDestinations.contains(square)) {
         final piece = state.game.get(state.selectedSquare!);
         if (piece != null &&
             piece.type == ch.PieceType.PAWN &&
             (square[1] == '8' || square[1] == '1')) {
-          emit(
-            state.copyWith(
-              pendingPromotion: {'from': state.selectedSquare!, 'to': square},
-            ),
-          );
+          emit(state.copyWith(pendingPromotion: {'from': state.selectedSquare!, 'to': square}));
         } else {
           _makeMove(state.selectedSquare!, square);
         }
@@ -36,8 +53,21 @@ class ChessCubit extends Cubit<ChessState> {
     }
 
     final piece = state.game.get(square);
-    if (piece != null && piece.color == state.game.turn) {
-      _selectSquare(square);
+    if (piece != null && piece.color == state.playerColor) {
+      if (state.game.turn != state.playerColor) {
+        // Seleccionar pieza para premove (con movimientos pseudo-legales)
+        final copy = state.game.copy();
+        copy.turn = state.playerColor;
+        final moves = copy.generate_moves({'square': square});
+        final destinations = moves.map((m) => m.toAlgebraic).toList();
+        emit(state.copyWith(
+          selectedSquare: square, 
+          legalMoveDestinations: destinations, 
+          clearPremove: true
+        ));
+      } else {
+        _selectSquare(square);
+      }
     } else {
       emit(state.copyWith(clearSelection: true));
     }
@@ -46,7 +76,23 @@ class ChessCubit extends Cubit<ChessState> {
   void onDraggedMove(String from, String to) {
     if (state.pendingPromotion != null || _isGameOver()) return;
     if (from == to) return; 
-    if (state.game.turn != state.playerColor) return; // Turno del bot
+    
+    if (state.game.turn != state.playerColor) {
+      // Lógica de premove (drag)
+      final piece = state.game.get(from);
+      if (piece != null && piece.color == state.playerColor) {
+        final copy = state.game.copy();
+        copy.turn = state.playerColor;
+        final moves = copy.generate_moves({'square': from});
+        if (moves.any((m) => m.toAlgebraic == to)) {
+          emit(state.copyWith(
+            premove: {'from': from, 'to': to},
+            clearSelection: true,
+          ));
+        }
+      }
+      return; 
+    }
 
     final moves = state.game.generate_moves({'square': from});
     final destinations = moves.map((m) => m.toAlgebraic).toList();
@@ -178,13 +224,30 @@ class ChessCubit extends Cubit<ChessState> {
         if (openingName != null) {
           finalFeedback['openingName'] = openingName;
         }
+
+        final hasValidPremove = isBotMove && state.premove != null && newGame.turn == state.playerColor && !_isGameOver();
+        bool executePremove = false;
+        String? pmFrom;
+        String? pmTo;
+        
+        if (hasValidPremove) {
+          pmFrom = state.premove!['from'];
+          pmTo = state.premove!['to'];
+          final moves = newGame.generate_moves({'square': pmFrom!});
+          executePremove = moves.any((m) => m.toAlgebraic == pmTo!);
+        }
         
         emit(
           state.copyWith(
             currentEval: uiEval,
             lastMoveFeedback: finalFeedback,
+            clearPremove: hasValidPremove,
           ),
         );
+
+        if (executePremove && pmFrom != null && pmTo != null) {
+          _makeMove(pmFrom, pmTo, wasDragged: true);
+        }
 
         // Ya calculamos y mostramos TU medalla. Ahora le decimos a Maia que juegue.
         if (!isBotMove && newGame.turn != state.playerColor && !_isGameOver()) {
@@ -206,16 +269,13 @@ class ChessCubit extends Cubit<ChessState> {
     final fen = state.game.fen;
     
     // 1. Intentar hacer una jugada de libro teórica si estamos practicando una apertura o si estamos en la teoría
-    final validBookMoves = OpeningsService().getBookMoves(state.game, targetOpening: state.practiceOpening);
-    if (validBookMoves.isNotEmpty) {
-      // Elegir aleatoriamente entre las jugadas de libro válidas
-      validBookMoves.shuffle();
-      final uciMove = validBookMoves.first;
-      final from = uciMove.substring(0, 2);
-      final to = uciMove.substring(2, 4);
+    final bookUciMove = OpeningsService().getRandomBookMove(state.game, targetOpening: state.practiceOpening);
+    if (bookUciMove != null) {
+      final from = bookUciMove.substring(0, 2);
+      final to = bookUciMove.substring(2, 4);
       String? promotion;
-      if (uciMove.length == 5) {
-        promotion = uciMove[4];
+      if (bookUciMove.length == 5) {
+        promotion = bookUciMove[4];
       }
       
       print('🤖 MAIA juega de LIBRO: $from$to (Target: ${state.practiceOpening ?? "ninguno"})');

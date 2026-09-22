@@ -4,8 +4,10 @@ import 'package:stockfish_chess_engine/stockfish_chess_engine.dart';
 class StockfishEvaluation {
   final int score; // in centipawns, or a large number for mate
   final bool isMate;
+  final String? bestMove;
+  final String? pv;
 
-  StockfishEvaluation({required this.score, this.isMate = false});
+  StockfishEvaluation({required this.score, this.isMate = false, this.bestMove, this.pv});
 }
 
 class StockfishService {
@@ -55,13 +57,19 @@ class StockfishService {
       if (line.startsWith('info depth')) {
         final parts = line.split(' ');
         final scoreIndex = parts.indexOf('score');
+        final pvIndex = parts.indexOf('pv');
+        String? pvStr;
+        if (pvIndex != -1 && pvIndex + 1 < parts.length) {
+          pvStr = parts.sublist(pvIndex + 1).join(' ');
+        }
+        
         if (scoreIndex != -1 && scoreIndex + 2 < parts.length) {
           final type = parts[scoreIndex + 1];
           final val = int.tryParse(parts[scoreIndex + 2]);
           if (val != null) {
             int scoreWhite = isWhiteToMove ? val : -val;
             if (type == 'cp') {
-              lastEval = StockfishEvaluation(score: scoreWhite, isMate: false);
+              lastEval = StockfishEvaluation(score: scoreWhite, isMate: false, pv: pvStr);
             } else if (type == 'mate') {
               // mate score: val is mate in N moves. Positive means engine mates, negative means engine is mated.
               // We translate it to a large score, e.g. 10000
@@ -70,13 +78,22 @@ class StockfishService {
               lastEval = StockfishEvaluation(
                 score: mateScoreWhite,
                 isMate: true,
+                pv: pvStr
               );
             }
           }
         }
       } else if (line.startsWith('bestmove')) {
         if (!completer.isCompleted) {
-          completer.complete(lastEval ?? StockfishEvaluation(score: 0));
+          final parts = line.split(' ');
+          String? bestMove = parts.length > 1 ? parts[1] : null;
+          completer.complete(lastEval != null 
+            ? StockfishEvaluation(
+                score: lastEval!.score, 
+                isMate: lastEval!.isMate, 
+                pv: lastEval!.pv, 
+                bestMove: bestMove)
+            : StockfishEvaluation(score: 0, bestMove: bestMove));
         }
       }
     });

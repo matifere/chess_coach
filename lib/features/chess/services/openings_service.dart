@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:chess/chess.dart' as ch;
+import 'dart:math' as math;
+
 
 class OpeningsService {
   static final OpeningsService _instance = OpeningsService._internal();
@@ -77,24 +79,50 @@ class OpeningsService {
     return lastName;
   }
 
-  /// Get valid book moves from the current position.
-  /// If [targetOpening] is provided, only returns moves that eventually lead to that opening.
-  List<String> getBookMoves(ch.Chess game, {String? targetOpening}) {
+  /// Get a valid book move from the current position.
+  /// If [targetOpening] is provided, only returns a move that eventually leads to that opening.
+  /// The move is selected randomly, weighted by the size of its subtree (favoring main lines).
+  String? getRandomBookMove(ch.Chess game, {String? targetOpening}) {
     final node = getNode(game);
-    if (node == null || !node.containsKey('c')) return [];
+    if (node == null || !node.containsKey('c')) return null;
 
     final children = node['c'] as Map<String, dynamic>;
-    final allMoves = children.keys.cast<String>().toList();
+    final validMovesWeights = <String, int>{};
 
-    if (targetOpening == null || targetOpening.isEmpty) {
-      return allMoves;
+    final targetLower = targetOpening?.toLowerCase();
+
+    for (final move in children.keys.cast<String>()) {
+      final childNode = children[move] as Map<String, dynamic>;
+      
+      if (targetLower == null || targetLower.isEmpty || _subtreeContains(childNode, targetLower)) {
+        validMovesWeights[move] = _getSubtreeSize(childNode);
+      }
     }
 
-    final targetLower = targetOpening.toLowerCase();
-    return allMoves.where((move) {
-      final childNode = children[move] as Map<String, dynamic>;
-      return _subtreeContains(childNode, targetLower);
-    }).toList();
+    if (validMovesWeights.isEmpty) return null;
+
+    int totalWeight = validMovesWeights.values.fold(0, (sum, w) => sum + w);
+    if (totalWeight <= 0) return validMovesWeights.keys.first;
+
+    int randomValue = math.Random().nextInt(totalWeight);
+    for (final entry in validMovesWeights.entries) {
+      if (randomValue < entry.value) {
+        return entry.key;
+      }
+      randomValue -= entry.value;
+    }
+
+    return validMovesWeights.keys.first;
+  }
+
+  int _getSubtreeSize(Map<String, dynamic> node) {
+    int size = 1;
+    if (node.containsKey('c')) {
+      for (final child in (node['c'] as Map<String, dynamic>).values) {
+        size += _getSubtreeSize(child as Map<String, dynamic>);
+      }
+    }
+    return size;
   }
 
   bool _subtreeContains(Map<String, dynamic> node, String targetOpening) {

@@ -62,9 +62,15 @@ class ChessBoard extends StatelessWidget {
                           final isLastMove = isLastMoveFrom || isLastMoveTo;
                           final moveQuality = isLastMoveTo ? (state.lastMoveFeedback?['quality'] as MoveQuality?) : null;
 
+                          final isPremoveFrom = state.premove?['from'] == squareId;
+                          final isPmoveTo = state.premove?['to'] == squareId;
+                          final isPremove = isPremoveFrom || isPmoveTo;
+
                           Color finalColor = color!;
                           if (isSelected) {
                             finalColor = Colors.blue.withValues(alpha:0.8);
+                          } else if (isPremove) {
+                            finalColor = Colors.red.withValues(alpha:0.5);
                           } else if (isLegalMove) {
                             finalColor = Colors.green.withValues(alpha:0.5);
                           } else if (isLastMove) {

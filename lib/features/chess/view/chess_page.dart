@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/chess_cubit.dart';
 import '../cubit/chess_state.dart';
 import 'widgets/chess_board.dart';
+import '../../../core/widgets/app_drawer.dart';
 import 'package:chess/chess.dart' as ch;
 
 class ChessPage extends StatelessWidget {
@@ -21,9 +22,10 @@ class ChessView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Chess Coach'), centerTitle: true),
+      drawer: const AppDrawer(),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth > 800;
+          final isDesktop = constraints.maxWidth >= 800;
 
           final boardWidget = Padding(
             padding: const EdgeInsets.all(16.0),
@@ -77,7 +79,7 @@ class SideMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         // Turn Status
         BlocBuilder<ChessCubit, ChessState>(
           builder: (context, state) {
@@ -163,7 +165,7 @@ class SideMenu extends StatelessWidget {
             return const SizedBox.shrink();
           },
         ),
-        const Divider(height: 32),
+        const Divider(height: 16),
 
         // Player Color Selector
         const Text(
@@ -186,7 +188,7 @@ class SideMenu extends StatelessWidget {
           },
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         
         // Selector de Elo
         BlocBuilder<ChessCubit, ChessState>(
@@ -226,7 +228,7 @@ class SideMenu extends StatelessWidget {
           },
         ),
 
-        const Divider(height: 32),
+        const Divider(height: 16),
 
         // Selector de Apertura
         BlocBuilder<ChessCubit, ChessState>(
@@ -273,7 +275,7 @@ class SideMenu extends StatelessWidget {
           },
         ),
 
-        const Divider(height: 32),
+        const Divider(height: 16),
 
         // PGN History
         const Text(
